@@ -1,0 +1,2 @@
+-- Seed data for local development. Run via `supabase db reset`.
+-- Intentionally empty for now — the game has no global content.

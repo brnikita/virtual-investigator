@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: #fbf6e9;
+  color: #1f1c18;
+}
+
+/* Print stylesheet for the journal page. The screen layout intentionally
+   mimics the print layout, but @page lets us nail A4 portrait sizing. */
+@media print {
+  @page { size: A4 portrait; margin: 8mm; }
+  body { background: white; }
+  .no-print { display: none !important; }
+  .page-break { break-after: page; }
+}

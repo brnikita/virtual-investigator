@@ -1,0 +1,24 @@
+{
+  "app": {
+    "title": "Virtual Investigator",
+    "tagline": "Playful dossiers on classmates and friends"
+  },
+  "nav": {
+    "newCase": "New case",
+    "myCases": "My cases",
+    "journal": "Journal"
+  },
+  "interview": {
+    "start": "Start interview",
+    "stop": "End interview",
+    "uploadPhoto": "Upload photo",
+    "takePhoto": "Take photo",
+    "muteMic": "Mute mic",
+    "unmuteMic": "Unmute mic"
+  },
+  "dossier": {
+    "title": "Secret dossier",
+    "regenerate": "Regenerate portrait",
+    "print": "Print"
+  }
+}

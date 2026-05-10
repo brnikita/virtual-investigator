@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["fra1"],
+  "functions": {
+    "src/app/api/realtime/session/route.ts": { "maxDuration": 30 },
+    "src/app/api/dossier/[id]/generate-image/route.ts": { "maxDuration": 60 },
+    "src/app/api/dossier/[id]/compose/route.ts": { "maxDuration": 60 },
+    "src/app/api/pdf/[caseId]/route.ts": { "maxDuration": 60 }
+  }
+}
