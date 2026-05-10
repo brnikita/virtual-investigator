@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { composeDossier } from '@/lib/openai/dossier';
+import type { Json } from '@/lib/supabase/database.types';
 
 // POST /api/dossier/:id/compose — pulls evidence rows for the case, runs them
 // through the dossier composer (gpt-4o-mini), upserts the dossier row, and
@@ -35,7 +36,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: dossier, error } = await supabase
     .from('dossiers')
-    .upsert({ case_id: caseId, payload }, { onConflict: 'case_id' })
+    // DossierPayload is a typed interface; Supabase column type is the open
+    // `Json` shape, so cast at the boundary.
+    .upsert({ case_id: caseId, payload: payload as unknown as Json }, { onConflict: 'case_id' })
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
