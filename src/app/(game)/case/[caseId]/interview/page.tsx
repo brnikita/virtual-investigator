@@ -28,6 +28,7 @@ export default async function InterviewPage({
 
   const dict = await getDictionary(c.language as Locale);
   const t = dict.interview;
+  const a = dict.avatar;
   const labels = {
     panelTitle: t.panelTitle,
     panelHint: t.panelHint,
@@ -42,11 +43,16 @@ export default async function InterviewPage({
     detective: t.roleDetective,
     suspect: t.roleSuspect,
   };
+  const avatarLabels = {
+    liveBadge: a.liveBadge,
+    offline: a.offline,
+    noLipSync: a.noLipSync,
+  };
 
   return (
     <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 py-8 lg:grid-cols-[2fr_1fr]">
       <section className="space-y-4">
-        <AvatarStage caseId={caseId} />
+        <AvatarStage caseId={caseId} labels={avatarLabels} />
         <EvidenceUploader caseId={caseId} />
       </section>
       <aside className="space-y-4">

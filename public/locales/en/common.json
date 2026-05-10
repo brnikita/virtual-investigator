@@ -59,6 +59,11 @@
     "roleSuspect": "You",
     "endingSoon": "Time left:"
   },
+  "avatar": {
+    "liveBadge": "Live · Inspector Carrot",
+    "offline": "Avatar offline",
+    "noLipSync": "Lip-sync unavailable in this browser — voice still works."
+  },
   "dossier": {
     "title": "Secret dossier",
     "regenerate": "Regenerate portrait",

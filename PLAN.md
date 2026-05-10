@@ -146,8 +146,15 @@ appears live in `AvatarStage`.
     own `MediaStreamTrackProcessor` so the realtime hot path stays free of
     audio decoding. Stub from Phase 2.1 already matched the final shape; only
     the doc comment changed in this step.
-- [ ] **3.3 Simli session bootstrap.** `AvatarStage` fetches
+- [x] **3.3 Simli session bootstrap.** `AvatarStage` fetches
   `/api/simli/session` and calls `startAvatar`.
+  - Diverged: AvatarStage also owns the audio bridge from realtime track
+    to Simli — `MediaStreamTrackProcessor` reads Float32 frames at 24 kHz,
+    we convert to Int16 and push through the controller (downsampling to
+    16 kHz happens inside the controller). Safari (no MSTP) falls back to
+    mounting the realtime track on the visible <audio> element and
+    surfacing a one-line "no lip-sync" notice. Session-fetch failures
+    show an "avatar offline" chip but don't crash the rest of the page.
 - [x] **3.4 Wire the audio pipeline.** Replace the throw in
   `src/lib/simli/client.ts` with a real implementation using `simli-client`.
   Use `pipeline.downsamplePcm24kTo16k` to convert frames before pushing.
