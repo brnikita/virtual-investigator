@@ -262,9 +262,14 @@ is generated, and the user can print or download.
     `CaseActions.tsx`: it flips local state, calls onSave, and reverts on
     failure. Save-state UI ("Saving…" / "Saved" / error chip) lives inside
     the editor and is driven by `useTransition`.
-- [ ] **5.5 Journal page.** `/journal` lists every "ready" dossier as a
+- [x] **5.5 Journal page.** `/journal` lists every "ready" dossier as a
   `PrintableSheet` separated by `.page-break`. The browser Print dialog
   produces the booklet.
+  - Diverged: stitch dossiers by case_id locally (no FK relation in the
+    generated types) and pre-mint every portrait signed URL server-side
+    in parallel — the print pass shouldn't depend on a flaky network
+    re-fetch. Tiny `JournalPrintButton` client island wraps
+    `window.print()`. New i18n group `journal.{title,intro,print,empty}`.
 
 ---
 
