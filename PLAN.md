@@ -240,10 +240,19 @@ is generated, and the user can print or download.
     Node runtime (react-pdf is heavy and not Edge-safe). The signed-URL
     helper mints a 5-min portrait link; the renderer downloads the bytes
     inline. Download link surfaced from `CaseActions` ("Скачать PDF").
-- [ ] **5.3 Portrait generation.** Add a "Generate portrait" button on the
+- [x] **5.3 Portrait generation.** Add a "Generate portrait" button on the
   dossier page that calls `POST /api/dossier/:id/generate-image` with
   `appearanceNotes` derived from the `appearance` evidence rows. Show a
   loading state and replace the placeholder when done.
+  - Diverged: live image gen deferred until a real OPENAI_API_KEY lands —
+    the route 401s today. Wiring is end-to-end: the case overview pulls
+    every `evidence` row with `category='appearance'` and the newest
+    `suspect_photo` storage_path, both pass through `CaseActions` into
+    the POST body. On success we `router.refresh()` so the next render
+    mints a fresh signed URL for the brand-new portrait attachment via
+    `signedUrlForAttachment`. The route's reference-photo TODO comment
+    stays in place — the path now arrives, but downloading the bytes for
+    `images.edit` is still future work.
 - [ ] **5.4 Inline editor.** Implement `DossierEditor` so the user can fix
   the composer's mistakes. Save back to `dossiers.payload`.
 - [ ] **5.5 Journal page.** `/journal` lists every "ready" dossier as a

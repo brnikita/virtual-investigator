@@ -28,9 +28,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .single();
   if (error || !c) return NextResponse.json({ error: 'case not found' }, { status: 404 });
 
-  // TODO(agent): When body.referencePhotoPath is set, download the bytes from
-  // the `evidence` bucket via admin client, base64-encode, pass as
-  // referencePhotoDataUrl. The model uses it as a soft hint, never a copy.
+  // The case overview now ships body.referencePhotoPath whenever a
+  // suspect_photo attachment exists (Phase 5.3). The contract is a path
+  // relative to the `evidence` bucket — e.g. "<case_id>/photo.jpg".
+  //
+  // TODO(agent): download the bytes via the admin client, base64-encode,
+  // pass as referencePhotoDataUrl, and switch generateDossierPortrait to
+  // images.edit so the cartoon stays close to the reference. The model
+  // uses it as a soft hint, never a copy.
 
   const portrait = await generateDossierPortrait({
     suspectName: c.suspect_name as string,
