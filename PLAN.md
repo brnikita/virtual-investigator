@@ -16,16 +16,21 @@ Goal: a fresh clone can `npm install && npm run dev` and see the landing page.
   prettier, gitignore, editorconfig. (Done at scaffold time.)
 - [x] **0.2 Empty UI shell.** Landing page renders, `npm run typecheck` passes
   on the stubs.
-- [ ] **0.3 Install + boot.** Run `npm install`, then `npm run dev`. Open
+- [x] **0.3 Install + boot.** Run `npm install`, then `npm run dev`. Open
   http://localhost:3000 and see the landing page. Fix any package-version
   drift (Next 15 + React 19 are still moving fast).
   - Acceptance: dev server boots without errors; landing renders.
-- [ ] **0.4 Local Supabase.** `supabase start`, then `supabase db reset` to apply
+  - Verified: typecheck/lint clean; dev server bound to :3001 (3000 was in use)
+    and responded 200 with the RU landing page.
+- [x] **0.4 Local Supabase.** `supabase start`, then `supabase db reset` to apply
   the two migrations. Open Studio (`:54323`) and confirm tables + RLS exist.
   Run `npm run db:types` to overwrite the placeholder
   `src/lib/supabase/database.types.ts`.
   - Acceptance: typed Supabase calls in `src/lib/supabase/*` compile against
     the regenerated types.
+  - Diverged: Supabase running on alt ports (Studio :64323). Had to cast
+    `DossierPayload` to `Json` in `compose/route.ts` since the typed
+    interface isn't structurally an index signature.
 
 ---
 
@@ -33,21 +38,34 @@ Goal: a fresh clone can `npm install && npm run dev` and see the landing page.
 
 Goal: a user can log in, create a case, and see it in their list.
 
-- [ ] **1.1 Magic-link login.** Implement `src/app/(auth)/login/page.tsx` with a
+- [x] **1.1 Magic-link login.** Implement `src/app/(auth)/login/page.tsx` with a
   small client-side form calling `supabase.auth.signInWithOtp`. The callback
   route (`(auth)/callback/route.ts`) is already wired.
   - Acceptance: end-to-end login on localhost using a real email.
-- [ ] **1.2 Auth gate via middleware.** Extend `src/middleware.ts` to redirect
+  - Diverged: redirect target is `/callback` (not `/auth/callback`) because the
+    `(auth)` route group is invisible in the URL. Verified by triggering OTP
+    against local Supabase and seeing the magic-link email land in Mailpit.
+- [x] **1.2 Auth gate via middleware.** Extend `src/middleware.ts` to redirect
   unauthenticated users hitting `/(game)/*` to `/login?next=...`.
   - Acceptance: `/new` while logged out redirects to `/login`.
-- [ ] **1.3 Profile bootstrap.** On first sign-in, upsert a `profiles` row
+  - Verified via curl: `/new` and `/cases` both 307 to `/login?next=...`.
+- [x] **1.3 Profile bootstrap.** On first sign-in, upsert a `profiles` row
   (display_name = email local-part, preferred_language = 'ru').
-- [ ] **1.4 Create case.** Implement the form in `src/app/(game)/new/page.tsx`
+  - Done in `src/app/(auth)/callback/route.ts` after exchangeCodeForSession.
+    Uses `onConflict: 'id', ignoreDuplicates: true` so re-logins don't clobber
+    a name/language the user later edits.
+- [x] **1.4 Create case.** Implement the form in `src/app/(game)/new/page.tsx`
   with a server action that inserts into `cases` and redirects to
   `/case/<id>/interview`.
   - Acceptance: insert succeeds; new row visible in Studio.
-- [ ] **1.5 My cases list.** Add a `/cases` route showing all of the user's
+  - Server-rendered form + zod-validated server action `createCase`. Sets
+    owner_id explicitly from the session (matches the RLS policy on `cases`).
+    Default language seeded from `profiles.preferred_language`.
+- [x] **1.5 My cases list.** Add a `/cases` route showing all of the user's
   cases with status badges. Link from header.
+  - Server-rendered list ordered by created_at desc with bilingual status
+    badges. Header.tsx now bilingual (RU/EN inline) and mounted from
+    `src/app/layout.tsx` so it appears site-wide.
 
 ---
 
