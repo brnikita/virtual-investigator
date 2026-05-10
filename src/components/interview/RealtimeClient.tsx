@@ -91,6 +91,8 @@ export function RealtimeClient({
   const remoteAudioElRef = useRef<HTMLAudioElement | null>(null);
   const hardStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Set by /api/interview/start at session open; read at /finalize time.
+  const interviewIdRef = useRef<string | null>(null);
 
   // Tear-down is shared between the explicit Stop button, the hard cap
   // timer, and unmount.
@@ -132,6 +134,17 @@ export function RealtimeClient({
       if (!sessionRes.ok) throw new Error(`session mint failed (${sessionRes.status})`);
       const session = (await sessionRes.json()) as SessionResponse;
       const ephemeralKey = session.client_secret.value;
+
+      // 1b. Register the interview row before opening the peer so the
+      //     evidence dispatcher can attach tool breadcrumbs immediately.
+      const startRes = await fetch('/api/interview/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId, realtimeSessionId: session.client_secret.value }),
+      });
+      if (!startRes.ok) throw new Error(`interview start failed (${startRes.status})`);
+      const { interviewId } = (await startRes.json()) as { interviewId: string };
+      interviewIdRef.current = interviewId;
 
       // 2. Build the peer.
       const pc = new RTCPeerConnection();
@@ -299,9 +312,12 @@ export function RealtimeClient({
   };
 
   const stop = async () => {
+    const interviewId = interviewIdRef.current;
     teardown();
     setActive(false);
-    await fetch(`/api/interview/${caseId}/finalize`, { method: 'POST' }).catch(() => {
+    interviewIdRef.current = null;
+    if (!interviewId) return;
+    await fetch(`/api/interview/${interviewId}/finalize`, { method: 'POST' }).catch(() => {
       /* finalize errors are surfaced server-side; the UI just stops the peer. */
     });
   };

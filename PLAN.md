@@ -114,9 +114,15 @@ real time; tool calls land in the database.
     doesn't need a second config endpoint. Defense-in-depth check added to
     the finalize route: rejects with 409 if the active interview's
     `started_at` is older than `MAX + 30s`.
-- [ ] **2.5 Interview metrics.** Persist `started_at`, `ended_at`,
+- [x] **2.5 Interview metrics.** Persist `started_at`, `ended_at`,
   `duration_seconds`, and a `cost_estimate_usd` computed from the audio
   duration on `interviews`.
+  - Diverged: finalize URL switched from `:caseId` to `:interviewId`. The
+    new `/api/interview/start` route inserts the row, flips the case to
+    `interviewing`, and returns `{ interviewId }` which RealtimeClient
+    holds for the lifetime of the peer. Finalize is idempotent, caps
+    duration at `MAX_INTERVIEW_SECONDS` so a misbehaving client can't
+    inflate the bill, and writes a `system` summary row in `messages`.
 
 ---
 

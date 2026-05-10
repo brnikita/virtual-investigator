@@ -3,10 +3,22 @@ import { serverEnv } from '@/lib/env';
 import { createSupabaseServer } from '@/lib/supabase/server';
 
 // POST /api/interview/:id/finalize — called by the client when the user (or
-// the detective via the finish_interview tool) ends the session. Writes
-// duration/cost/status and flips the case to status='ready' for dossier
-// composition. The full body lands in step 2.5; step 2.4 only enforces the
-// hard cost cap (defense in depth on top of the client-side timer).
+// the detective via the finish_interview tool) ends the session. The :id
+// route param is the interviews.id row created by /api/interview/start.
+//
+// Steps:
+//   1. Read the active interview row.
+//   2. Defense-in-depth: reject if the audio ran longer than the cost cap.
+//   3. Stamp ended_at, duration_seconds, status='completed', and a rough
+//      cost_estimate_usd based on gpt-realtime-mini's per-minute midpoint.
+//   4. Flip cases.status to 'ready' so the dossier composer can pick it up.
+//
+// Cost rate: roughly $0.10 / minute total for gpt-realtime-mini including
+// both directions of audio (see docs/COSTS.md). Premium voice would
+// substitute a higher rate; this stays a flat estimate until we wire OpenAI
+// usage records.
+const COST_USD_PER_SECOND = 0.10 / 60;
+
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const env = serverEnv();
@@ -14,31 +26,74 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  // Defense in depth: if the client clock is wrong or someone replays the
-  // request, refuse to bill more than MAX + 30s of audio.
-  // The :id route param is the case id (the URL the client uses), not the
-  // interview row id — pick the latest active interview for the case.
-  const { data: interview } = await supabase
+  const { data: interview, error: readErr } = await supabase
     .from('interviews')
     .select('id, case_id, started_at, status')
-    .eq('case_id', id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .eq('id', id)
+    .single();
+  if (readErr || !interview) {
+    return NextResponse.json({ error: 'interview not found' }, { status: 404 });
+  }
 
-  if (interview?.started_at) {
-    const elapsed = (Date.now() - new Date(interview.started_at).getTime()) / 1000;
+  // Idempotency: if already completed, just echo it back.
+  if (interview.status === 'completed') {
+    return NextResponse.json({ ok: true, interviewId: interview.id, idempotent: true });
+  }
+
+  const startedAtIso = interview.started_at;
+  const endedAt = new Date();
+
+  // Defense in depth on the cost cap. Without a started_at we still proceed —
+  // the row will simply have a null duration.
+  let durationSeconds: number | null = null;
+  if (startedAtIso) {
+    const elapsed = (endedAt.getTime() - new Date(startedAtIso).getTime()) / 1000;
     if (elapsed > env.MAX_INTERVIEW_SECONDS + 30) {
+      // Mark the row aborted so a stuck client can retry without spinning
+      // up infinite cost; flip the case back to draft.
+      await supabase
+        .from('interviews')
+        .update({ status: 'aborted', ended_at: endedAt.toISOString() })
+        .eq('id', interview.id);
       return NextResponse.json(
         { error: 'interview exceeded MAX_INTERVIEW_SECONDS', elapsed },
         { status: 409 },
       );
     }
+    // Cap duration at MAX so a misbehaving client can't inflate the bill.
+    durationSeconds = Math.max(0, Math.min(env.MAX_INTERVIEW_SECONDS, Math.floor(elapsed)));
   }
 
-  // TODO(2.5): finish writing duration_seconds, cost_estimate_usd, flip
-  // case.status to 'ready', enqueue compose + portrait gen.
-  return NextResponse.json({ ok: true, interviewId: interview?.id ?? id, todo: 'finalize logic' }, {
-    status: 501,
+  const costEstimateUsd =
+    durationSeconds !== null ? Number((durationSeconds * COST_USD_PER_SECOND).toFixed(4)) : null;
+
+  const { error: updateErr } = await supabase
+    .from('interviews')
+    .update({
+      status: 'completed',
+      ended_at: endedAt.toISOString(),
+      duration_seconds: durationSeconds,
+      cost_estimate_usd: costEstimateUsd,
+    })
+    .eq('id', interview.id);
+  if (updateErr) {
+    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  }
+
+  // Append a summary breadcrumb so the transcript carries the close.
+  await supabase.from('messages').insert({
+    interview_id: interview.id,
+    role: 'system',
+    content: `interview completed (${durationSeconds ?? '?'}s, ~$${costEstimateUsd ?? '?'})`,
+  });
+
+  // Flip the case to ready so the dossier overview can render it.
+  await supabase.from('cases').update({ status: 'ready' }).eq('id', interview.case_id);
+
+  return NextResponse.json({
+    ok: true,
+    interviewId: interview.id,
+    durationSeconds,
+    costEstimateUsd,
   });
 }
