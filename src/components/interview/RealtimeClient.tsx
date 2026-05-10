@@ -72,6 +72,42 @@ export interface RealtimeClientLabels {
   errorPrefix: string;
   endingSoon: string;
   composing: string;
+  retry: string;
+  micBlocked: string;
+  connectError: string;
+}
+
+// We surface specific copy for mic-permission errors and connection
+// failures. Anything else falls through to the original raw message.
+type FailureKind = 'mic' | 'connect' | 'other';
+
+interface FailureState {
+  kind: FailureKind;
+  raw: string;
+}
+
+function classifyError(err: unknown): FailureState {
+  const raw = err instanceof Error ? err.message : 'unknown error';
+  if (err instanceof DOMException) {
+    // Chrome / Firefox emit NotAllowedError when the user denies the prompt
+    // (or has a global block); SecurityError is the http-vs-https case.
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      return { kind: 'mic', raw };
+    }
+    if (err.name === 'NotFoundError' || err.name === 'NotReadableError') {
+      return { kind: 'mic', raw };
+    }
+  }
+  // Anything that mentions 'session mint failed', 'realtime SDP', or the
+  // hand-rolled 'interview start failed' lives upstream of the mic.
+  if (
+    raw.includes('session mint failed') ||
+    raw.includes('realtime SDP') ||
+    raw.includes('interview start failed')
+  ) {
+    return { kind: 'connect', raw };
+  }
+  return { kind: 'other', raw };
 }
 
 export function RealtimeClient({
@@ -83,7 +119,7 @@ export function RealtimeClient({
 }) {
   const router = useRouter();
   const [active, setActive] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<FailureState | null>(null);
   // Visible only inside the last 60 seconds; null otherwise.
   const [countdown, setCountdown] = useState<number | null>(null);
   // True between teardown and the redirect-to-overview, while we kick off the
@@ -130,7 +166,7 @@ export function RealtimeClient({
   }, [teardown]);
 
   const start = async () => {
-    setError(null);
+    setFailure(null);
     try {
       // 1. Mint an ephemeral key bound to this case.
       const sessionRes = await fetch('/api/realtime/session', {
@@ -314,7 +350,7 @@ export function RealtimeClient({
       }, 1000);
     } catch (err) {
       teardown();
-      setError(err instanceof Error ? err.message : 'unknown error');
+      setFailure(classifyError(err));
     }
   };
 
@@ -361,14 +397,27 @@ export function RealtimeClient({
         )}
       </div>
       {countdown !== null ? (
-        <p className="mt-2 text-sm font-semibold text-stamp">
+        <p className="mt-2 text-sm font-semibold text-stamp" aria-live="polite">
           {labels.endingSoon} {countdown}s
         </p>
       ) : null}
-      {error ? (
-        <p className="mt-2 text-sm text-red-700">
-          {labels.errorPrefix}: {error}
-        </p>
+      {failure ? (
+        <div className="mt-3 rounded-md border border-red-300 bg-red-50 p-3 text-sm" role="alert">
+          <p className="text-red-700">
+            {failure.kind === 'mic'
+              ? labels.micBlocked
+              : failure.kind === 'connect'
+              ? labels.connectError
+              : `${labels.errorPrefix}: ${failure.raw}`}
+          </p>
+          <button
+            type="button"
+            onClick={start}
+            className="mt-2 rounded-md border border-red-300 bg-white px-3 py-1 text-red-700 hover:bg-red-100"
+          >
+            {labels.retry}
+          </button>
+        </div>
       ) : null}
     </div>
   );

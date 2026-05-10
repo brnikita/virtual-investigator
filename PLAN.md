@@ -283,8 +283,15 @@ is generated, and the user can print or download.
     PrintableSheet section labels follow the dossier's own language.
     Header stays bilingual on purpose — visitor language preference isn't
     known at the chrome level.
-- [ ] **6.2 Empty / error states.** Friendly messages when the user has no
+- [x] **6.2 Empty / error states.** Friendly messages when the user has no
   cases, mic is denied, image gen fails, etc.
+  - Diverged: `RealtimeClient` now classifies failures into mic /
+    connect / other and surfaces the friendly RU/EN copy plus an
+    in-place "Try again" button (no page reload). The cases empty state
+    gained a CTA tile linking to `/new`; the journal empty state links
+    back to `/cases` so the user can finish a case first. Case overview
+    shows a one-line "Finish the interview to build the dossier" hint
+    when no payload exists yet.
 - [ ] **6.3 Cost display.** Show running cost estimate in the interview
   HUD; cap message at the limit.
 - [ ] **6.4 Lighthouse pass.** Aim for ≥ 90 on Best Practices and
