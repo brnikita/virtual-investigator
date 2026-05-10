@@ -201,8 +201,16 @@ privately and used as a hint for the portrait generator.
     accepts the first file only and rejects non-image MIME types with the
     `fileTypeError` string. Object URLs are revoked when the preview is
     replaced.
-- [ ] **4.3 Signed-URL helper.** Add a server util that returns a 60-s signed
+- [x] **4.3 Signed-URL helper.** Add a server util that returns a 60-s signed
   URL for an attachment, used by the dossier editor and PDF renderer.
+  - Diverged: dropped the `import 'server-only'` because the package isn't
+    in node_modules; the helper is server-only by transitive constraint
+    (it calls `createSupabaseServer()` which reads `cookies()`). Two
+    Supabase clients on purpose: SSR for the RLS-checked attachment
+    lookup, admin only for the actual `createSignedUrl`. New
+    `<EvidenceImage>` Server Component wraps the helper with a plain
+    `<img>` (next/image's `remotePatterns` would need a 127.0.0.1 entry
+    for local dev). Not consumed anywhere yet — Phase 5 will wire it.
 
 ---
 
