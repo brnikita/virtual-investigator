@@ -23,8 +23,8 @@ interface SessionResponse {
   maxInterviewSeconds: number;
 }
 
-// We only handle a handful of event types; the rest of the union is
-// represented as `Record<string, unknown>` so the JSON.parse cast is safe.
+// We handle a handful of event types; the rest of the union is represented
+// as `Record<string, unknown>` so the JSON.parse cast stays narrow.
 type RealtimeEvent =
   | { type: 'response.audio_transcript.delta'; delta: string; item_id?: string }
   | { type: 'response.audio_transcript.done'; transcript: string; item_id?: string }
@@ -33,38 +33,34 @@ type RealtimeEvent =
       transcript: string;
       item_id?: string;
     }
+  | {
+      type: 'response.function_call_arguments.done';
+      name: string;
+      arguments: string;
+      call_id: string;
+    }
   | { type: string; [key: string]: unknown };
 
-function routeRealtimeEvent(evt: RealtimeEvent) {
-  switch (evt.type) {
-    case 'response.audio_transcript.delta':
-      transcriptBus.dispatchTurn({
-        role: 'detective',
-        text: (evt as { delta: string }).delta,
-        final: false,
-        itemId: (evt as { item_id?: string }).item_id,
-      });
-      break;
-    case 'response.audio_transcript.done':
-      transcriptBus.dispatchTurn({
-        role: 'detective',
-        text: (evt as { transcript: string }).transcript,
-        final: true,
-        itemId: (evt as { item_id?: string }).item_id,
-      });
-      break;
-    case 'conversation.item.input_audio_transcription.completed':
-      transcriptBus.dispatchTurn({
-        role: 'suspect',
-        text: (evt as { transcript: string }).transcript,
-        final: true,
-        itemId: (evt as { item_id?: string }).item_id,
-      });
-      break;
-    default:
-      // Tool calls, response.created, errors, etc. — handled in 2.3 / 2.4.
-      break;
-  }
+interface RecordEvidenceArgs {
+  category: 'identity' | 'appearance' | 'observations' | 'funny_facts' | 'exhibits';
+  key: string;
+  value: string;
+  confidence?: number;
+}
+
+interface FinishInterviewArgs {
+  summary: string;
+}
+
+function isRecordEvidenceArgs(v: unknown): v is RecordEvidenceArgs {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.category === 'string' && typeof o.key === 'string' && typeof o.value === 'string';
+}
+
+function isFinishInterviewArgs(v: unknown): v is FinishInterviewArgs {
+  if (!v || typeof v !== 'object') return false;
+  return typeof (v as Record<string, unknown>).summary === 'string';
 }
 
 export interface RealtimeClientLabels {
@@ -156,11 +152,97 @@ export function RealtimeClient({
       // 5. Single data channel for events. Name is mandated by the API.
       const dc = pc.createDataChannel('oai-events');
       dcRef.current = dc;
+
+      // Send a tool result back through the data channel and ask the model
+      // to continue its turn. The shape comes from the Realtime examples:
+      // `conversation.item.create` followed by `response.create`.
+      const sendToolOutput = (callId: string, output: unknown) => {
+        if (dc.readyState !== 'open') return;
+        dc.send(
+          JSON.stringify({
+            type: 'conversation.item.create',
+            item: {
+              type: 'function_call_output',
+              call_id: callId,
+              output: JSON.stringify(output),
+            },
+          }),
+        );
+        dc.send(JSON.stringify({ type: 'response.create' }));
+      };
+
+      const handleEvent = async (evt: RealtimeEvent) => {
+        switch (evt.type) {
+          case 'response.audio_transcript.delta':
+            transcriptBus.dispatchTurn({
+              role: 'detective',
+              text: (evt as { delta: string }).delta,
+              final: false,
+              itemId: (evt as { item_id?: string }).item_id,
+            });
+            return;
+          case 'response.audio_transcript.done':
+            transcriptBus.dispatchTurn({
+              role: 'detective',
+              text: (evt as { transcript: string }).transcript,
+              final: true,
+              itemId: (evt as { item_id?: string }).item_id,
+            });
+            return;
+          case 'conversation.item.input_audio_transcription.completed':
+            transcriptBus.dispatchTurn({
+              role: 'suspect',
+              text: (evt as { transcript: string }).transcript,
+              final: true,
+              itemId: (evt as { item_id?: string }).item_id,
+            });
+            return;
+          case 'response.function_call_arguments.done': {
+            const tool = evt as {
+              name: string;
+              arguments: string;
+              call_id: string;
+            };
+            let parsed: unknown;
+            try {
+              parsed = JSON.parse(tool.arguments);
+            } catch {
+              sendToolOutput(tool.call_id, { ok: false, error: 'invalid_json' });
+              return;
+            }
+            if (tool.name === 'record_evidence' && isRecordEvidenceArgs(parsed)) {
+              try {
+                const res = await fetch('/api/evidence', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ caseId, ...parsed }),
+                });
+                sendToolOutput(tool.call_id, res.ok ? { ok: true } : { ok: false });
+              } catch {
+                sendToolOutput(tool.call_id, { ok: false, error: 'network' });
+              }
+              return;
+            }
+            if (tool.name === 'finish_interview' && isFinishInterviewArgs(parsed)) {
+              sendToolOutput(tool.call_id, { ok: true });
+              // The detective is done speaking — close the loop. stop()
+              // tears the peer down and POSTs to /finalize.
+              await stop();
+              return;
+            }
+            sendToolOutput(tool.call_id, { ok: false, error: 'unknown_tool' });
+            return;
+          }
+          default:
+            return;
+        }
+      };
+
       dc.addEventListener('message', (e) => {
         if (typeof e.data !== 'string') return;
         try {
           const evt = JSON.parse(e.data) as RealtimeEvent;
-          routeRealtimeEvent(evt);
+          void handleEvent(evt);
         } catch {
           // Realtime occasionally pads with binary control frames; ignore.
         }

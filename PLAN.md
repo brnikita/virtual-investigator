@@ -94,13 +94,18 @@ real time; tool calls land in the database.
     Interview page now loads the dictionary server-side and passes label
     props into both client components — keeps i18n strings out of client
     bundles and out of the realtime hot path.
-- [ ] **2.3 Tool dispatch.** Handle `response.function_call_arguments.done` for
+- [x] **2.3 Tool dispatch.** Handle `response.function_call_arguments.done` for
   `record_evidence` and `finish_interview`. For `record_evidence`, POST to a
   new route `POST /api/evidence` (create stub) that inserts into `evidence`.
   For `finish_interview`, stop the peer and call
   `/api/interview/:id/finalize`.
   - Acceptance: ending the interview creates a `messages` summary row and
     flips the case to `ready`.
+  - Diverged: case-flip-to-ready and the summary `messages` row now both
+    live in step 2.5 (finalize route body). 2.3 ships only the client-side
+    dispatch + `/api/evidence` route. The route upserts on `(case_id, key)`
+    so re-asks of the same fact stay one row, and writes a `tool` breadcrumb
+    in `messages` keyed to the active interview.
 - [ ] **2.4 Hard cap on interview length.** `RealtimeClient` enforces
   `MAX_INTERVIEW_SECONDS` with a `setTimeout`. UI shows a countdown in the
   last 60 seconds.
