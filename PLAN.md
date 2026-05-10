@@ -307,8 +307,15 @@ is generated, and the user can print or download.
     Accessibility 100, Best Practices 100. The only intermediate fix
     needed was a missing `/favicon.ico` — added `src/app/icon.svg` so
     Next 15 generates one. Reports live in `.lighthouse/` (gitignored).
-- [ ] **6.5 README + screenshots.** Refresh `README.md` with screenshots of
+- [x] **6.5 README + screenshots.** Refresh `README.md` with screenshots of
   the live interview and a printed journal page.
+  - Diverged: live screenshots aren't included — capturing them needs
+    real OpenAI + Simli keys, which this dev env doesn't have. README
+    now points at the original sample (`samples/Nastya/*.png`) and the
+    `<PrintableSheet>` component as the design reference, plus a "What's
+    working today" section mirroring the PLAN checkboxes and a "Required
+    external accounts" table. Quick start updated with alt Supabase
+    ports + Mailpit URL.
 
 ---
 
