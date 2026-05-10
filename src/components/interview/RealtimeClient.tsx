@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { avatarBus } from '@/lib/avatar-bus';
 import { transcriptBus } from '@/lib/transcript-bus';
 
@@ -70,6 +71,7 @@ export interface RealtimeClientLabels {
   stop: string;
   errorPrefix: string;
   endingSoon: string;
+  composing: string;
 }
 
 export function RealtimeClient({
@@ -79,10 +81,15 @@ export function RealtimeClient({
   caseId: string;
   labels: RealtimeClientLabels;
 }) {
+  const router = useRouter();
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Visible only inside the last 60 seconds; null otherwise.
   const [countdown, setCountdown] = useState<number | null>(null);
+  // True between teardown and the redirect-to-overview, while we kick off the
+  // dossier composer in the background. The button keeps showing a spinner
+  // so the user doesn't think the page is broken.
+  const [composing, setComposing] = useState(false);
 
   // Refs because these survive re-renders but never need to trigger one.
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -317,9 +324,21 @@ export function RealtimeClient({
     setActive(false);
     interviewIdRef.current = null;
     if (!interviewId) return;
-    await fetch(`/api/interview/${interviewId}/finalize`, { method: 'POST' }).catch(() => {
-      /* finalize errors are surfaced server-side; the UI just stops the peer. */
-    });
+    setComposing(true);
+    try {
+      await fetch(`/api/interview/${interviewId}/finalize`, { method: 'POST' }).catch(() => {
+        /* finalize errors are surfaced server-side; the UI just stops the peer. */
+      });
+      // Kick off the dossier composer once the case is flipped to `ready`.
+      // We don't surface a failure to the user — the overview page exposes
+      // a manual "Compose" button that retries against the same endpoint.
+      await fetch(`/api/dossier/${caseId}/compose`, { method: 'POST' }).catch(() => {
+        /* swallow — overview page can retry. */
+      });
+    } finally {
+      setComposing(false);
+      router.push(`/case/${caseId}`);
+    }
   };
 
   return (
@@ -327,7 +346,11 @@ export function RealtimeClient({
       <h3 className="font-semibold">{labels.panelTitle}</h3>
       <p className="mt-1 text-sm text-ink/70">{labels.panelHint}</p>
       <div className="mt-3 flex gap-2">
-        {!active ? (
+        {composing ? (
+          <button disabled className="rounded-md border border-ink/30 px-4 py-2 opacity-60">
+            {labels.composing}
+          </button>
+        ) : !active ? (
           <button onClick={start} className="rounded-md bg-stamp px-4 py-2 text-white">
             {labels.start}
           </button>

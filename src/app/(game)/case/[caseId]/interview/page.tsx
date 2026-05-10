@@ -36,6 +36,7 @@ export default async function InterviewPage({
     stop: t.stop,
     errorPrefix: t.errorPrefix,
     endingSoon: t.endingSoon,
+    composing: t.composing,
   };
   const transcriptLabels = {
     title: t.transcriptTitle,

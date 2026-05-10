@@ -1,15 +1,21 @@
 'use client';
 
 import type { DossierPayload } from '@/types/domain';
+import type { DossierActionLabels } from './CaseActions';
 
-// Inline editor for the dossier payload. Presents the same fields as the
-// printable sheet, but every text node becomes a contenteditable / input.
-// TODO(agent): full implementation. Save with optimistic update via
-// `useTransition` + `fetch('/api/dossier/:id/compose', { method: 'PUT' })`.
-export function DossierEditor({ payload }: { payload: DossierPayload }) {
+// Inline editor stub — fleshed out in PLAN step 5.4.
+export function DossierEditor({
+  payload,
+  onSave: _onSave,
+  labels: _labels,
+}: {
+  payload: DossierPayload;
+  onSave: (next: DossierPayload) => Promise<void>;
+  labels: DossierActionLabels;
+}) {
   return (
     <div className="space-y-4">
-      <p className="text-ink/60">TODO: editable form for {Object.keys(payload).length} fields</p>
+      <p className="text-ink/60">TODO 5.4: editable form for {Object.keys(payload).length} fields</p>
     </div>
   );
 }

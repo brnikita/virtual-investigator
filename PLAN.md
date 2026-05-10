@@ -219,9 +219,17 @@ privately and used as a hint for the portrait generator.
 Goal: when the interview ends, the dossier is composed, the cartoon portrait
 is generated, and the user can print or download.
 
-- [ ] **5.1 Compose flow.** After `finish_interview`, the client calls
+- [x] **5.1 Compose flow.** After `finish_interview`, the client calls
   `POST /api/dossier/:id/compose` (already implemented stub) and renders the
   result in the dossier overview page.
+  - Diverged: live OpenAI call deferred — `.env.local` carries a placeholder
+    `OPENAI_API_KEY`, so the composer 401s until a real key is dropped in.
+    Wiring is end-to-end: `RealtimeClient.stop()` calls finalize then
+    compose, then redirects; the new `/case/[caseId]` overview server-renders
+    the latest dossier (or a "Compose dossier" button that POSTs to the same
+    endpoint). The actions live in `CaseActions.tsx` so the page itself can
+    stay a Server Component. New i18n keys: `dossier.compose|composing|noDossier`
+    and friends, plus `interview.composing` for the realtime panel button.
 - [ ] **5.2 PDF renderer.** Implement `src/lib/pdf/render.ts` with
   `@react-pdf/renderer`. The component must mirror the visual structure of
   `samples/Nastya/*.png`: header + stamps, photo card (left), identity
