@@ -300,8 +300,13 @@ is generated, and the user can print or download.
     refreshes a "Cost: ≈ $0.04" line every second alongside the
     countdown; once the cap fires the meter freezes and we surface a
     short "cost cap reached" hint with a tooltip.
-- [ ] **6.4 Lighthouse pass.** Aim for ≥ 90 on Best Practices and
+- [x] **6.4 Lighthouse pass.** Aim for ≥ 90 on Best Practices and
   Accessibility.
+  - Verified with `lighthouse@12` headless against `npm run dev`
+    (Chrome 137 on Windows). Landing `/` and `/login` both score
+    Accessibility 100, Best Practices 100. The only intermediate fix
+    needed was a missing `/favicon.ico` — added `src/app/icon.svg` so
+    Next 15 generates one. Reports live in `.lighthouse/` (gitignored).
 - [ ] **6.5 README + screenshots.** Refresh `README.md` with screenshots of
   the live interview and a printed journal page.
 

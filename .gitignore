@@ -44,6 +44,9 @@ supabase/.env
 # Vercel
 .vercel/
 
+# Lighthouse reports — generated locally, not committed.
+.lighthouse/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
