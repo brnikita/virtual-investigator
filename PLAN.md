@@ -131,9 +131,13 @@ real time; tool calls land in the database.
 Goal: while the detective speaks, a friendly animated face syncs lips and
 appears live in `AvatarStage`.
 
-- [ ] **3.1 Simli account + face id.** Create a Simli account, choose a
+- [~] **3.1 Simli account + face id.** Create a Simli account, choose a
   friendly cartoon face, store `SIMLI_FACE_ID` in env. Document choice in
   `docs/PROMPTS.md`.
+  - blocked: needs Simli dashboard signup (human-only). `.env.local` carries
+    placeholder values for `SIMLI_API_KEY`/`SIMLI_FACE_ID` so the rest of
+    Phase 3 ships dry; live streaming will succeed once the human swaps in
+    real credentials.
 - [ ] **3.2 AvatarBus.** Create `src/lib/avatar-bus.ts` — a tiny EventTarget
   that lets `RealtimeClient` push audio chunks (PCM16 24 kHz Int16Array) and
   `AvatarStage` subscribe.
