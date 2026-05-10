@@ -8,6 +8,41 @@
     "myCases": "Мои дела",
     "journal": "Журнал"
   },
+  "auth": {
+    "loginTitle": "Вход",
+    "loginIntro": "Введи свой email — пришлём волшебную ссылку.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "ты@школа.ру",
+    "sendLink": "Отправить ссылку",
+    "sending": "Отправляем…",
+    "checkInbox": "Готово! Проверь почту — мы отправили волшебную ссылку для входа.",
+    "errorGeneric": "Не удалось отправить ссылку. Попробуй ещё раз."
+  },
+  "newCase": {
+    "title": "Новое дело",
+    "subtitle": "Кого будем «допрашивать»?",
+    "suspectNameLabel": "Имя «подозреваемого»",
+    "suspectNamePlaceholder": "Например, Настя",
+    "languageLabel": "Язык допроса",
+    "languageRu": "Русский",
+    "languageEn": "English",
+    "submit": "Начать дело",
+    "submitting": "Создаём…",
+    "errorGeneric": "Не получилось создать дело. Попробуй ещё раз."
+  },
+  "cases": {
+    "title": "Мои дела",
+    "empty": "Пока нет дел. Заведи первое!",
+    "newCase": "Завести дело",
+    "openCase": "Открыть",
+    "createdAt": "Создано"
+  },
+  "caseStatus": {
+    "draft": "Черновик",
+    "interviewing": "Допрашиваю",
+    "ready": "Готово",
+    "archived": "Архив"
+  },
   "interview": {
     "start": "Начать допрос",
     "stop": "Завершить допрос",

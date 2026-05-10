@@ -8,6 +8,41 @@
     "myCases": "My cases",
     "journal": "Journal"
   },
+  "auth": {
+    "loginTitle": "Sign in",
+    "loginIntro": "Enter your email and we'll send a magic link.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@school.com",
+    "sendLink": "Send link",
+    "sending": "Sending…",
+    "checkInbox": "Check your inbox — we sent you a magic sign-in link.",
+    "errorGeneric": "Could not send the link. Try again."
+  },
+  "newCase": {
+    "title": "New case",
+    "subtitle": "Who are we 'interviewing'?",
+    "suspectNameLabel": "Suspect name",
+    "suspectNamePlaceholder": "e.g. Alex",
+    "languageLabel": "Interview language",
+    "languageRu": "Русский",
+    "languageEn": "English",
+    "submit": "Start case",
+    "submitting": "Creating…",
+    "errorGeneric": "Could not create the case. Try again."
+  },
+  "cases": {
+    "title": "My cases",
+    "empty": "No cases yet. Start your first one!",
+    "newCase": "New case",
+    "openCase": "Open",
+    "createdAt": "Created"
+  },
+  "caseStatus": {
+    "draft": "Draft",
+    "interviewing": "Interviewing",
+    "ready": "Ready",
+    "archived": "Archived"
+  },
   "interview": {
     "start": "Start interview",
     "stop": "End interview",
