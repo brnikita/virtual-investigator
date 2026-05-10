@@ -148,11 +148,17 @@ appears live in `AvatarStage`.
     the doc comment changed in this step.
 - [ ] **3.3 Simli session bootstrap.** `AvatarStage` fetches
   `/api/simli/session` and calls `startAvatar`.
-- [ ] **3.4 Wire the audio pipeline.** Replace the throw in
+- [x] **3.4 Wire the audio pipeline.** Replace the throw in
   `src/lib/simli/client.ts` with a real implementation using `simli-client`.
   Use `pipeline.downsamplePcm24kTo16k` to convert frames before pushing.
   - Acceptance: lips move in time with the detective's voice; latency
     < 1.5 s on first turn, < 800 ms on subsequent turns.
+  - Diverged: SDK is `simli-client@1.2.5`. We use `new SimliClient()` +
+    `Initialize({ apiKey, faceID, handleSilence: true, maxSessionLength,
+    maxIdleTime, videoRef, audioRef, SimliURL: '' })` + `start()`. Audio
+    feed is `sendAudioData(Uint8Array)` over the resampled Int16 buffer;
+    `flush()` maps to `ClearBuffer()`; `stop()` to `close()`. Latency
+    target unverified (no live Simli account in this env — see 3.1).
 - [ ] **3.5 Idle state.** When no audio is flowing for > 1 s, the avatar idles
   (Simli does this itself — verify).
 
