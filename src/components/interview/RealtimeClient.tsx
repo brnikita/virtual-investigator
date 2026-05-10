@@ -1,37 +1,143 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { avatarBus } from '@/lib/avatar-bus';
 
 // Owns the WebRTC peer to OpenAI Realtime. Two big responsibilities:
 //   1. Negotiate the peer connection using the ephemeral key from
 //      /api/realtime/session and stream the user's microphone in.
-//   2. Forward incoming audio frames to the AvatarBus so AvatarStage can drive
-//      the Simli avatar; forward incoming text deltas to TranscriptPanel.
+//   2. Forward incoming audio frames to AvatarBus so AvatarStage can drive
+//      the Simli avatar; forward incoming text deltas to TranscriptBus so
+//      TranscriptPanel can render captions.
 //
-// Tool calls (record_evidence, finish_interview) come back as
-// `response.function_call_arguments.delta` events — handle them by POSTing to
-// the appropriate API route.
+// Tool calls (record_evidence, finish_interview) are handled in step 2.3.
+// Length cap and metrics persistence are handled in 2.4 / 2.5.
 //
-// TODO(agent):
-//   - Implement createPeerConnection() per
-//     https://platform.openai.com/docs/guides/realtime-webrtc
-//   - Wire mic via getUserMedia({ audio: true }).
-//   - Wire data-channel for events; dispatch to AvatarBus + TranscriptBus.
-//   - Honor MAX_INTERVIEW_SECONDS via a setTimeout that calls stop().
+// References:
+//   https://platform.openai.com/docs/guides/realtime-webrtc
+
+interface SessionResponse {
+  client_secret: { value: string; expires_at: number };
+  model: string;
+  maxInterviewSeconds: number;
+}
+
 export function RealtimeClient({ caseId }: { caseId: string }) {
   const [active, setActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Refs because these survive re-renders but never need to trigger one.
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const dcRef = useRef<RTCDataChannel | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const remoteAudioElRef = useRef<HTMLAudioElement | null>(null);
+
+  // Tear-down is shared between the explicit Stop button and unmount.
+  const teardown = useCallback(() => {
+    try { dcRef.current?.close(); } catch { /* noop */ }
+    try { pcRef.current?.getSenders().forEach((s) => s.track?.stop()); } catch { /* noop */ }
+    try { pcRef.current?.close(); } catch { /* noop */ }
+    micStreamRef.current?.getTracks().forEach((t) => t.stop());
+    if (remoteAudioElRef.current) {
+      remoteAudioElRef.current.srcObject = null;
+      remoteAudioElRef.current.remove();
+      remoteAudioElRef.current = null;
+    }
+    avatarBus.emit('end', undefined);
+    pcRef.current = null;
+    dcRef.current = null;
+    micStreamRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    // Always release the mic and the peer if the user navigates away.
+    return () => teardown();
+  }, [teardown]);
 
   const start = async () => {
-    setActive(true);
-    // const res = await fetch('/api/realtime/session', { method: 'POST', body: JSON.stringify({ caseId }) });
-    // const { client_secret } = await res.json();
-    // ... open RTCPeerConnection, attach mic, ...
+    setError(null);
+    try {
+      // 1. Mint an ephemeral key bound to this case.
+      const sessionRes = await fetch('/api/realtime/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId }),
+      });
+      if (!sessionRes.ok) throw new Error(`session mint failed (${sessionRes.status})`);
+      const session = (await sessionRes.json()) as SessionResponse;
+      const ephemeralKey = session.client_secret.value;
+
+      // 2. Build the peer.
+      const pc = new RTCPeerConnection();
+      pcRef.current = pc;
+
+      // 3. Mount the remote audio element. Hidden — Simli will play the
+      //    audio once Phase 3 lands; until then the user hears the
+      //    detective directly through this element.
+      const remoteAudio = document.createElement('audio');
+      remoteAudio.autoplay = true;
+      remoteAudio.style.display = 'none';
+      document.body.appendChild(remoteAudio);
+      remoteAudioElRef.current = remoteAudio;
+
+      pc.ontrack = (event) => {
+        const [stream] = event.streams;
+        if (stream) remoteAudio.srcObject = stream;
+        // Phase 3.2 will subscribe to this event in AvatarStage and
+        // route the track through the Simli pipeline.
+        avatarBus.emit('remote_track', event.track);
+      };
+
+      // 4. Mic.
+      const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = mic;
+      for (const track of mic.getTracks()) pc.addTrack(track, mic);
+
+      // 5. Single data channel for events. Name is mandated by the API.
+      const dc = pc.createDataChannel('oai-events');
+      dcRef.current = dc;
+      dc.addEventListener('message', (e) => {
+        // Step 2.2 / 2.3 will route these. For now, surface in dev console
+        // so the smoke test can confirm bidirectional traffic.
+        if (typeof e.data === 'string') {
+          console.debug('[realtime] event', e.data.slice(0, 200));
+        }
+      });
+
+      // 6. SDP offer/answer with the OpenAI Realtime endpoint. The body of
+      //    the POST is the raw SDP (Content-Type: application/sdp) and the
+      //    response body is the answer SDP — not JSON.
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const sdpRes = await fetch(
+        `https://api.openai.com/v1/realtime?model=${encodeURIComponent(session.model)}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${ephemeralKey}`,
+            'Content-Type': 'application/sdp',
+          },
+          body: offer.sdp ?? '',
+        },
+      );
+      if (!sdpRes.ok) throw new Error(`realtime SDP exchange failed (${sdpRes.status})`);
+      const answerSdp = await sdpRes.text();
+      await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+      setActive(true);
+    } catch (err) {
+      teardown();
+      setError(err instanceof Error ? err.message : 'unknown error');
+    }
   };
 
   const stop = async () => {
+    teardown();
     setActive(false);
-    await fetch(`/api/interview/${caseId}/finalize`, { method: 'POST' });
-    // pc?.close()
+    await fetch(`/api/interview/${caseId}/finalize`, { method: 'POST' }).catch(() => {
+      /* finalize errors are surfaced server-side; the UI just stops the peer. */
+    });
   };
 
   return (
@@ -51,6 +157,7 @@ export function RealtimeClient({ caseId }: { caseId: string }) {
           </button>
         )}
       </div>
+      {error ? <p className="mt-2 text-sm text-red-700">Ошибка: {error}</p> : null}
     </div>
   );
 }

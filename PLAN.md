@@ -74,12 +74,17 @@ Goal: a user can log in, create a case, and see it in their list.
 Goal: the user can talk to the detective via voice; transcript appears in
 real time; tool calls land in the database.
 
-- [ ] **2.1 Ephemeral key wiring.** `RealtimeClient` calls
+- [x] **2.1 Ephemeral key wiring.** `RealtimeClient` calls
   `/api/realtime/session`, gets `client_secret`, opens an
   `RTCPeerConnection`, attaches the mic from `getUserMedia`, and exchanges
   SDP with `https://api.openai.com/v1/realtime?model=...`.
   - Reference: https://platform.openai.com/docs/guides/realtime-webrtc
   - Acceptance: data-channel events stream in the dev console.
+  - Diverged: `/api/realtime/session` now also echoes `model` and
+    `maxInterviewSeconds` so the client can target the right SDP endpoint
+    and arm the cost-cap timer (used in 2.4) without a second round-trip.
+    AvatarBus stub created early as `src/lib/avatar-bus.ts` so the Phase 3
+    wiring is purely additive — Phase 2 only emits a `remote_track` event.
 - [ ] **2.2 Transcript bus.** Route `response.audio_transcript.delta` (assistant)
   and `conversation.item.input_audio_transcription.completed` (user) into a
   `TranscriptBus`. Render in `TranscriptPanel`.

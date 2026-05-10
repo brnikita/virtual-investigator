@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mintRealtimeEphemeralKey } from '@/lib/openai/realtime';
+import { serverEnv } from '@/lib/env';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { detectiveSystemPrompt, detectiveTools } from '@/lib/openai/prompts';
 
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
     .single();
   if (error || !c) return NextResponse.json({ error: 'case not found' }, { status: 404 });
 
+  const env = serverEnv();
   const key = await mintRealtimeEphemeralKey({
     voice: body.data.voice,
     language: c.language as 'ru' | 'en',
@@ -37,5 +39,12 @@ export async function POST(req: Request) {
     tools: detectiveTools as unknown as unknown[],
   });
 
-  return NextResponse.json(key);
+  // Echo the realtime model so the client can target the right SDP endpoint
+  // without leaking server-only env. Same for the hard interview cap — the
+  // client uses it to enforce the cost guardrail with a setTimeout.
+  return NextResponse.json({
+    ...key,
+    model: env.OPENAI_REALTIME_MODEL,
+    maxInterviewSeconds: env.MAX_INTERVIEW_SECONDS,
+  });
 }
