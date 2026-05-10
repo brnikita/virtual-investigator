@@ -22,6 +22,7 @@ interface SessionResponse {
   client_secret: { value: string; expires_at: number };
   model: string;
   maxInterviewSeconds: number;
+  costPerMinuteUsd: number;
 }
 
 // We handle a handful of event types; the rest of the union is represented
@@ -75,6 +76,8 @@ export interface RealtimeClientLabels {
   retry: string;
   micBlocked: string;
   connectError: string;
+  costLabel: string;
+  costCapped: string;
 }
 
 // We surface specific copy for mic-permission errors and connection
@@ -122,6 +125,10 @@ export function RealtimeClient({
   const [failure, setFailure] = useState<FailureState | null>(null);
   // Visible only inside the last 60 seconds; null otherwise.
   const [countdown, setCountdown] = useState<number | null>(null);
+  // Running cost estimate, refreshed once a second. We freeze the value at
+  // the cap so the user never sees the meter drift past the budget guard.
+  const [costUsd, setCostUsd] = useState<number | null>(null);
+  const [costCapped, setCostCapped] = useState(false);
   // True between teardown and the redirect-to-overview, while we kick off the
   // dossier composer in the background. The button keeps showing a spinner
   // so the user doesn't think the page is broken.
@@ -158,6 +165,8 @@ export function RealtimeClient({
     dcRef.current = null;
     micStreamRef.current = null;
     setCountdown(null);
+    // Note: we deliberately do NOT clear costUsd here so the user keeps
+    // seeing the final running total until the page navigates away.
   }, []);
 
   useEffect(() => {
@@ -340,13 +349,22 @@ export function RealtimeClient({
       // Cost guardrail: hard-stop at MAX_INTERVIEW_SECONDS, with a visible
       // countdown in the last 60s so kids aren't surprised by the cut.
       const maxSec = session.maxInterviewSeconds;
+      const ratePerMin = session.costPerMinuteUsd;
       const startedAt = Date.now();
+      // Show the meter at $0.00 right away — feels more responsive than
+      // waiting a full second for the first tick to land.
+      setCostUsd(0);
+      setCostCapped(false);
       hardStopTimerRef.current = setTimeout(() => {
         void stop();
       }, maxSec * 1000);
       countdownTickerRef.current = setInterval(() => {
-        const remaining = Math.max(0, maxSec - Math.floor((Date.now() - startedAt) / 1000));
+        const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+        const cappedElapsed = Math.min(elapsed, maxSec);
+        const remaining = Math.max(0, maxSec - elapsed);
         setCountdown(remaining <= 60 ? remaining : null);
+        setCostUsd((cappedElapsed / 60) * ratePerMin);
+        if (elapsed >= maxSec) setCostCapped(true);
       }, 1000);
     } catch (err) {
       teardown();
@@ -396,11 +414,23 @@ export function RealtimeClient({
           </button>
         )}
       </div>
-      {countdown !== null ? (
-        <p className="mt-2 text-sm font-semibold text-stamp" aria-live="polite">
-          {labels.endingSoon} {countdown}s
-        </p>
-      ) : null}
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        {countdown !== null ? (
+          <span className="font-semibold text-stamp" aria-live="polite">
+            {labels.endingSoon} {countdown}s
+          </span>
+        ) : null}
+        {costUsd !== null ? (
+          <span
+            className="text-ink/70"
+            title={costCapped ? labels.costCapped : undefined}
+          >
+            {labels.costLabel}: ≈ ${costUsd.toFixed(2)}
+            {costCapped ? ' ·' : null}
+            {costCapped ? <span className="ml-1 text-stamp">{labels.costCapped}</span> : null}
+          </span>
+        ) : null}
+      </div>
       {failure ? (
         <div className="mt-3 rounded-md border border-red-300 bg-red-50 p-3 text-sm" role="alert">
           <p className="text-red-700">

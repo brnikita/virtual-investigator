@@ -40,6 +40,8 @@ export default async function InterviewPage({
     retry: t.retry,
     micBlocked: t.micBlocked,
     connectError: t.connectError,
+    costLabel: t.costLabel,
+    costCapped: t.costCapped,
   };
   const transcriptLabels = {
     title: t.transcriptTitle,

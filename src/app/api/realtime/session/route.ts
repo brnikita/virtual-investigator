@@ -41,10 +41,17 @@ export async function POST(req: Request) {
 
   // Echo the realtime model so the client can target the right SDP endpoint
   // without leaking server-only env. Same for the hard interview cap — the
-  // client uses it to enforce the cost guardrail with a setTimeout.
+  // client uses it to enforce the cost guardrail with a setTimeout. The
+  // per-minute USD rate is the published default for the chosen model
+  // (see docs/COSTS.md); the HUD multiplies it by elapsed minutes to show
+  // a running cost estimate. This is informational — the hard cap is the
+  // real budget guard.
+  const costPerMinuteUsd =
+    env.OPENAI_REALTIME_MODEL === 'gpt-realtime' ? 0.3 : 0.1;
   return NextResponse.json({
     ...key,
     model: env.OPENAI_REALTIME_MODEL,
     maxInterviewSeconds: env.MAX_INTERVIEW_SECONDS,
+    costPerMinuteUsd,
   });
 }

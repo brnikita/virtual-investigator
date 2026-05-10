@@ -292,8 +292,14 @@ is generated, and the user can print or download.
     back to `/cases` so the user can finish a case first. Case overview
     shows a one-line "Finish the interview to build the dossier" hint
     when no payload exists yet.
-- [ ] **6.3 Cost display.** Show running cost estimate in the interview
+- [x] **6.3 Cost display.** Show running cost estimate in the interview
   HUD; cap message at the limit.
+  - Diverged: `/api/realtime/session` now echoes `costPerMinuteUsd`
+    derived from `OPENAI_REALTIME_MODEL` ($0.10/min for the mini,
+    $0.30/min for premium). The HUD reads it on session start and
+    refreshes a "Cost: ≈ $0.04" line every second alongside the
+    countdown; once the cap fires the meter freezes and we surface a
+    short "cost cap reached" hint with a tooltip.
 - [ ] **6.4 Lighthouse pass.** Aim for ≥ 90 on Best Practices and
   Accessibility.
 - [ ] **6.5 README + screenshots.** Refresh `README.md` with screenshots of
