@@ -1,37 +1,75 @@
+import path from 'node:path';
 import { Document, Font, Image as PdfImage, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import type { DossierPayload } from '@/types/domain';
 
-// Register two open-source handwritten faces from Google Fonts. We pull the
-// raw .ttf URLs (gstatic.com) instead of bundling binaries with the repo.
-// "Caveat" carries the headline, "Patrick Hand" handles body copy. The
-// renderer downloads + caches them on first render; subsequent calls are
-// in-memory.
-//
-// NOTE: Font.register is idempotent in @react-pdf/renderer — a second call
-// with the same family name is a no-op, so we don't have to gate it.
+// @react-pdf 4.x crashes with "Cannot read properties of undefined (reading
+// 'unitsPerEm')" when textkit walks a codepoint that no font in the stack can
+// render — typically Cyrillic against a Latin-only TTF. Bundle a Cyrillic-
+// aware fallback (Roboto) alongside the handwritten faces so every glyph
+// resolves. All TTFs sit under public/fonts/ to avoid network flakiness on
+// gstatic.com.
+const FONT_DIR = path.join(process.cwd(), 'public', 'fonts');
+
 Font.register({
   family: 'Caveat',
   fonts: [
-    {
-      src: 'https://fonts.gstatic.com/s/caveat/v18/WnznHAc5bAfYB2QRah7pcpNvOx-pjcB9eIqp.ttf',
-      fontWeight: 'normal',
-    },
-    {
-      src: 'https://fonts.gstatic.com/s/caveat/v18/WnznHAc5bAfYB2QRah7pcpNvOx-pjf99eIqp.ttf',
-      fontWeight: 'bold',
-    },
+    { src: path.join(FONT_DIR, 'Caveat-Regular.ttf'), fontWeight: 'normal' },
+    { src: path.join(FONT_DIR, 'Caveat-Bold.ttf'), fontWeight: 'bold' },
   ],
 });
 
 Font.register({
   family: 'PatrickHand',
   fonts: [
-    {
-      src: 'https://fonts.gstatic.com/s/patrickhand/v23/LDI1apSQOAYtSuYWp8ZhfYeMWcjKm7sp8g.ttf',
-      fontWeight: 'normal',
-    },
+    { src: path.join(FONT_DIR, 'PatrickHand-Regular.ttf'), fontWeight: 'normal' },
   ],
 });
+
+// Cyrillic-capable body face. Used directly for Russian payloads and
+// implicitly as the fallback that textkit reaches when Caveat/PatrickHand
+// lack a glyph for the codepoint.
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    { src: path.join(FONT_DIR, 'Roboto-Regular.ttf'), fontWeight: 'normal' },
+    { src: path.join(FONT_DIR, 'Roboto-Bold.ttf'), fontWeight: 'bold' },
+  ],
+});
+
+// `@react-pdf/layout` always pushes 'Helvetica' onto the per-text fontFamily
+// stack as a final fallback, but `FontStore.getFont` returns null for the
+// standard PDF families. The null then propagates into textkit's font stack,
+// where `pickFontFromFontStack`'s ultimate `fontStack.at(-1)` fallback yields
+// undefined and the renderer crashes with `Cannot read properties of
+// undefined (reading 'unitsPerEm')`. Monkey-patch getFont so requests for the
+// standard family names resolve to our bundled Roboto instead.
+type FontStoreLike = {
+  fonts: Record<string, { resolve: (descriptor: unknown) => unknown }>;
+  getFont: (descriptor: { fontFamily: string; fontWeight?: unknown; fontStyle?: unknown }) => unknown;
+};
+const fontStore = Font as unknown as FontStoreLike;
+const STANDARD_PDF_FAMILIES = new Set([
+  'Courier',
+  'Courier-Bold',
+  'Courier-Oblique',
+  'Courier-BoldOblique',
+  'Helvetica',
+  'Helvetica-Bold',
+  'Helvetica-Oblique',
+  'Helvetica-BoldOblique',
+  'Times-Roman',
+  'Times-Bold',
+  'Times-Italic',
+  'Times-BoldItalic',
+]);
+const originalGetFont = fontStore.getFont.bind(fontStore);
+fontStore.getFont = (descriptor) => {
+  if (STANDARD_PDF_FAMILIES.has(descriptor.fontFamily)) {
+    const roboto = fontStore.fonts['Roboto'];
+    if (roboto) return roboto.resolve(descriptor);
+  }
+  return originalGetFont(descriptor);
+};
 
 // Single-page A4 dossier. Mirrors PrintableSheet.tsx beat-for-beat:
 //   header + stamps  | photo card (left) + identity table (right)
@@ -47,7 +85,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 24,
     paddingBottom: 28,
-    fontFamily: 'PatrickHand',
+    fontFamily: ['PatrickHand', 'Roboto'],
     fontSize: 11,
     color: '#1f1c18',
   },
@@ -64,14 +102,13 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   headline: {
-    fontFamily: 'Caveat',
+    fontFamily: ['Caveat', 'Roboto'],
     fontWeight: 'bold',
     fontSize: 28,
     letterSpacing: 1,
   },
   subheadline: {
     marginTop: 2,
-    fontStyle: 'italic',
     color: '#5b554d',
     fontSize: 11,
   },
@@ -85,7 +122,7 @@ const styles = StyleSheet.create({
     color: '#c0392b',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    fontFamily: 'Caveat',
+    fontFamily: ['Caveat', 'Roboto'],
     fontWeight: 'bold',
     fontSize: 12,
     marginBottom: 4,
@@ -106,7 +143,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   photoPlaceholder: {
-    fontFamily: 'Caveat',
+    fontFamily: ['Caveat', 'Roboto'],
     fontSize: 22,
     color: '#bdb6a3',
   },
@@ -133,7 +170,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionTitle: {
-    fontFamily: 'Caveat',
+    fontFamily: ['Caveat', 'Roboto'],
     fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 4,
@@ -171,7 +208,6 @@ const styles = StyleSheet.create({
     paddingVertical: 1.5,
   },
   lastSeen: {
-    fontStyle: 'italic',
     color: '#3a3630',
   },
   footer: {
@@ -182,7 +218,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: '#1f1c18',
     paddingTop: 6,
-    fontStyle: 'italic',
   },
 });
 
