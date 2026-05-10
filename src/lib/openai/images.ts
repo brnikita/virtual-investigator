@@ -30,11 +30,14 @@ export async function generateDossierPortrait(input: PortraitInput): Promise<Por
   // the MVP we use generation with a textual description of the reference.
   // TODO(agent): switch to images.edit when reference photo is provided to
   // produce a closer-match cartoon.
+  // The SDK's `quality` union still tracks DALL·E ("standard" | "hd"). gpt-image-2
+  // accepts low|medium|high, so we forward our env value as-is and cast the
+  // shape to the SDK type. Drop this cast once openai >=5 ships gpt-image-2 types.
   const result = await openai.images.generate({
     model: env.OPENAI_IMAGE_MODEL,
     prompt,
     size: '1024x1024',
-    quality: env.OPENAI_IMAGE_QUALITY,
+    quality: env.OPENAI_IMAGE_QUALITY as unknown as 'standard' | 'hd',
     n: 1,
   });
 

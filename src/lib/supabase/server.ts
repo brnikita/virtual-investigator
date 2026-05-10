@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { serverEnv } from '@/lib/env';
 import type { Database } from './database.types';
@@ -31,7 +32,6 @@ export async function createSupabaseServer() {
 // client component.
 export function createSupabaseAdmin() {
   const env = serverEnv();
-  const { createClient } = require('@supabase/supabase-js') as typeof import('@supabase/supabase-js');
   return createClient<Database>(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
