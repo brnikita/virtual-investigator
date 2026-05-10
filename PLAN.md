@@ -253,8 +253,15 @@ is generated, and the user can print or download.
     `signedUrlForAttachment`. The route's reference-photo TODO comment
     stays in place — the path now arrives, but downloading the bytes for
     `images.edit` is still future work.
-- [ ] **5.4 Inline editor.** Implement `DossierEditor` so the user can fix
+- [x] **5.4 Inline editor.** Implement `DossierEditor` so the user can fix
   the composer's mistakes. Save back to `dossiers.payload`.
+  - Diverged: save round-trips through a new `PUT /api/dossier/:id` route
+    that re-validates the payload with zod and clamps every scale
+    `value` into `[0, max]` at the boundary (defence in depth — the editor
+    already does this client-side). Optimistic update lives in
+    `CaseActions.tsx`: it flips local state, calls onSave, and reverts on
+    failure. Save-state UI ("Saving…" / "Saved" / error chip) lives inside
+    the editor and is driven by `useTransition`.
 - [ ] **5.5 Journal page.** `/journal` lists every "ready" dossier as a
   `PrintableSheet` separated by `.page-break`. The browser Print dialog
   produces the booklet.
