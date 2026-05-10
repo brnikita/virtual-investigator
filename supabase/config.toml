@@ -5,19 +5,36 @@ project_id = "virtual-investigator"
 
 [api]
 enabled = true
-port = 54321
+# Alt ports (64xxx) so we don't collide with other local Supabase projects.
+port = 64321
 schemas = ["public", "storage", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
 [db]
-port = 54322
-shadow_port = 54320
+port = 64322
+shadow_port = 64320
 major_version = 15
+
+[db.pooler]
+enabled = false
+port = 64329
 
 [studio]
 enabled = true
-port = 54323
+port = 64323
+
+[inbucket]
+enabled = true
+port = 64324
+smtp_port = 64325
+pop3_port = 64326
+
+[analytics]
+enabled = true
+port = 64327
+vector_port = 64328
+backend = "postgres"
 
 [storage]
 enabled = true
@@ -38,4 +55,4 @@ enable_confirmations = false
 [edge_runtime]
 enabled = true
 policy = "oneshot"
-inspector_port = 8083
+inspector_port = 64383
