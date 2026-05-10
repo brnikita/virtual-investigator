@@ -1,7 +1,11 @@
 {
   "app": {
     "title": "Virtual Investigator",
-    "tagline": "Playful dossiers on classmates and friends"
+    "tagline": "Playful dossiers on classmates and friends",
+    "intro": "Friendly Inspector Carrot runs the interview, and at the end you get a printable dossier.",
+    "cta": "Start a new case",
+    "openJournal": "Open journal",
+    "primaryNav": "Primary navigation"
   },
   "nav": {
     "newCase": "New case",
@@ -33,6 +37,7 @@
   "cases": {
     "title": "My cases",
     "empty": "No cases yet. Start your first one!",
+    "emptyCta": "Start your first case",
     "newCase": "New case",
     "openCase": "Open",
     "createdAt": "Created"
@@ -59,6 +64,11 @@
     "roleSuspect": "You",
     "endingSoon": "Time left:",
     "composing": "Composing dossier…",
+    "retry": "Try again",
+    "micBlocked": "Mic blocked — allow access in your browser and try again.",
+    "connectError": "Couldn't connect, try again.",
+    "costLabel": "Cost",
+    "costCapped": "Time cap reached — cost is locked in.",
     "snap": "Snap",
     "retake": "Retake",
     "useThis": "Use this",
@@ -87,6 +97,9 @@
     "composing": "Composing dossier…",
     "composeError": "Could not compose the dossier. Try again.",
     "noDossier": "No dossier yet. Press the button to compose one.",
+    "finishInterviewTip": "Finish the interview to build the dossier.",
+    "languagePicker": "Case language",
+    "languageSaving": "Switching language…",
     "edit": "Edit",
     "editorTitle": "Dossier editor",
     "save": "Save",

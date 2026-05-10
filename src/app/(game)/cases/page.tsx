@@ -24,7 +24,14 @@ export default async function CasesPage() {
   const preferredLanguage: 'ru' | 'en' =
     profile?.preferred_language === 'en' ? 'en' : 'ru';
   const t = (await getDictionary(preferredLanguage)) as {
-    cases: { title: string; empty: string; newCase: string; openCase: string; createdAt: string };
+    cases: {
+      title: string;
+      empty: string;
+      emptyCta: string;
+      newCase: string;
+      openCase: string;
+      createdAt: string;
+    };
     caseStatus: Record<CaseStatus, string>;
   };
 
@@ -50,7 +57,15 @@ export default async function CasesPage() {
       </div>
 
       {!cases || cases.length === 0 ? (
-        <p className="mt-10 text-ink/60">{t.cases.empty}</p>
+        <div className="mt-10 rounded-md border border-dashed border-ink/20 bg-paper p-8 text-center">
+          <p className="text-ink/60">{t.cases.empty}</p>
+          <Link
+            href="/new"
+            className="mt-4 inline-flex rounded-md bg-stamp px-5 py-2 text-sm text-white shadow hover:opacity-90"
+          >
+            {t.cases.emptyCta}
+          </Link>
+        </div>
       ) : (
         <ul className="mt-8 divide-y divide-ink/10 rounded-md border border-ink/10 bg-paper">
           {cases.map((c) => {

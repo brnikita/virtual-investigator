@@ -113,9 +113,20 @@ export default async function JournalPage() {
       </div>
 
       {sheets.length === 0 ? (
-        <p className="px-6 text-ink/60 no-print">{t.empty}</p>
+        <div className="px-6 no-print">
+          <p className="text-ink/60">{t.empty}</p>
+          <a
+            href="/cases"
+            className="mt-3 inline-flex rounded-md border border-ink/20 px-4 py-2 text-sm hover:bg-ink/5"
+          >
+            {dict.cases.title}
+          </a>
+        </div>
       ) : (
         sheets.map((s) => (
+          // Per-sheet labels follow the dossier's own language so each
+          // page reads in one tongue from header to footer, even if the
+          // user's profile preference differs.
           <PrintableSheet key={s.caseId} payload={s.payload} portraitUrl={s.portraitUrl} />
         ))
       )}

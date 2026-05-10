@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { DossierPayload } from '@/types/domain';
-import { PrintableSheet } from './PrintableSheet';
+import { PrintableSheet, type PrintableSheetLabels } from './PrintableSheet';
 import { DossierEditor } from './DossierEditor';
 
 // Single client surface for the case overview page. Keeps every interactive
@@ -206,7 +206,11 @@ export function CaseActions({
         </p>
       ) : (
         <div className="space-y-8">
-          <PrintableSheet payload={payload} portraitUrl={portraitUrl ?? undefined} />
+          <PrintableSheet
+            payload={payload}
+            portraitUrl={portraitUrl ?? undefined}
+            labels={sheetLabels(labels)}
+          />
           {editing ? (
             <section className="rounded-xl border border-ink/10 bg-white/70 p-5 shadow-sm no-print">
               <h2 className="font-casefile text-2xl">{labels.editorTitle}</h2>
@@ -217,4 +221,19 @@ export function CaseActions({
       )}
     </div>
   );
+}
+
+// The dossier label bag contains every PrintableSheet label too — pull
+// them out into the section-header shape the printable expects, and add the
+// alt-text fallback for the portrait. Caseload extracted into a helper so
+// the (game) page and the journal page share one mapping.
+function sheetLabels(labels: DossierActionLabels): PrintableSheetLabels {
+  return {
+    observations: labels.observations,
+    scales: labels.scales,
+    exhibits: labels.exhibits,
+    lastSeen: labels.lastSeen,
+    conclusion: labels.conclusion,
+    facialComposite: labels.title,
+  };
 }

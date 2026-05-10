@@ -4,6 +4,7 @@ import { getDictionary } from '@/lib/i18n/dictionaries';
 import type { Locale } from '@/lib/i18n/config';
 import type { DossierPayload } from '@/types/domain';
 import { CaseActions } from '@/components/dossier/CaseActions';
+import { CaseLangSwitcher } from '@/components/shell/CaseLangSwitcher';
 import { signedUrlForAttachment } from '@/lib/storage/signed-url';
 
 // Case overview / dossier page. Server-renders the latest dossier payload
@@ -88,6 +89,11 @@ export default async function CasePage({ params }: { params: Promise<{ caseId: s
 
   const payload = (dossier?.payload ?? null) as DossierPayload | null;
 
+  // The "Finish the interview to build the dossier" hint only fires when the
+  // case has no payload yet AND the user hasn't reached the `ready` state —
+  // a hint, not an error.
+  const showFinishHint = !payload && c.status !== 'ready';
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-6 flex items-baseline justify-between gap-4">
@@ -97,7 +103,19 @@ export default async function CasePage({ params }: { params: Promise<{ caseId: s
           </h1>
           <p className="mt-1 text-sm text-ink/60">№ {caseId.slice(0, 8)}</p>
         </div>
+        <CaseLangSwitcher
+          caseId={caseId}
+          value={language}
+          pickerLabel={t.languagePicker}
+          savingLabel={t.languageSaving}
+        />
       </header>
+
+      {showFinishHint ? (
+        <p className="mb-4 rounded-md border border-ink/10 bg-marker/20 px-4 py-2 text-sm text-ink/80">
+          {t.finishInterviewTip}
+        </p>
+      ) : null}
 
       <CaseActions
         caseId={caseId}

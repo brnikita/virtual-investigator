@@ -275,8 +275,14 @@ is generated, and the user can print or download.
 
 ## Phase 6 — Polish
 
-- [ ] **6.1 i18n round-trip.** Confirm RU and EN flow end-to-end (case
+- [x] **6.1 i18n round-trip.** Confirm RU and EN flow end-to-end (case
   language drives interview language drives composer language).
+  - Diverged: per-case LangSwitcher (server action `updateCaseLanguage`)
+    now lives on the case overview so the case language can flip
+    post-creation. Landing page is server-rendered from the dictionary;
+    PrintableSheet section labels follow the dossier's own language.
+    Header stays bilingual on purpose — visitor language preference isn't
+    known at the chrome level.
 - [ ] **6.2 Empty / error states.** Friendly messages when the user has no
   cases, mic is denied, image gen fails, etc.
 - [ ] **6.3 Cost display.** Show running cost estimate in the interview
