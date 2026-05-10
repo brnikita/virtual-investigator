@@ -230,11 +230,16 @@ is generated, and the user can print or download.
     endpoint). The actions live in `CaseActions.tsx` so the page itself can
     stay a Server Component. New i18n keys: `dossier.compose|composing|noDossier`
     and friends, plus `interview.composing` for the realtime panel button.
-- [ ] **5.2 PDF renderer.** Implement `src/lib/pdf/render.ts` with
+- [x] **5.2 PDF renderer.** Implement `src/lib/pdf/render.ts` with
   `@react-pdf/renderer`. The component must mirror the visual structure of
   `samples/Nastya/*.png`: header + stamps, photo card (left), identity
   table (right), observations block, danger-scale, exhibits, last-seen,
   footer. Wire `/api/pdf/:caseId` to stream the bytes.
+  - Diverged: `Caveat` and `Patrick Hand` registered via Google Fonts
+    `gstatic.com` `.ttf` URLs — no binaries in repo. Route pinned to the
+    Node runtime (react-pdf is heavy and not Edge-safe). The signed-URL
+    helper mints a 5-min portrait link; the renderer downloads the bytes
+    inline. Download link surfaced from `CaseActions` ("Скачать PDF").
 - [ ] **5.3 Portrait generation.** Add a "Generate portrait" button on the
   dossier page that calls `POST /api/dossier/:id/generate-image` with
   `appearanceNotes` derived from the `appearance` evidence rows. Show a
