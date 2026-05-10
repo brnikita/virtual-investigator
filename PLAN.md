@@ -181,9 +181,17 @@ appears live in `AvatarStage`.
 Goal: the suspect provides a photo via webcam or file upload; it's stored
 privately and used as a hint for the portrait generator.
 
-- [ ] **4.1 WebcamCapture.** Implement `getUserMedia({ video: true })`,
+- [x] **4.1 WebcamCapture.** Implement `getUserMedia({ video: true })`,
   capture a frame to canvas, POST to `/api/evidence/upload` as
   `kind=suspect_photo`. Show a retake-or-keep dialog.
+  - Diverged: do not auto-request the camera; first click triggers
+    `getUserMedia({ video: { facingMode: 'user' } })` so iOS/Safari accept
+    the prompt. Frames are scaled to a 1024 px long edge before JPEG-0.9
+    encoding, keeping uploads under ~200 KB. Tracks are stopped on success
+    AND on unmount so the green LED clears reliably. Labels threaded
+    server-side from the case-language dictionary (new keys: `snap`,
+    `retake`, `useThis`, `uploading`, `uploaded`, `cameraError`,
+    `uploadError`).
 - [ ] **4.2 File upload.** Drag-and-drop + file picker in `EvidenceUploader`,
   hitting the same endpoint.
 - [ ] **4.3 Signed-URL helper.** Add a server util that returns a 60-s signed

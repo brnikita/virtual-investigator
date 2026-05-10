@@ -47,7 +47,7 @@
     "start": "Start interview",
     "stop": "End interview",
     "uploadPhoto": "Upload photo",
-    "takePhoto": "Take photo",
+    "takePhoto": "Take a snap",
     "muteMic": "Mute mic",
     "unmuteMic": "Unmute mic",
     "panelTitle": "Interview",
@@ -57,7 +57,17 @@
     "transcriptEmpty": "Hit \"Start\" to begin the interview.",
     "roleDetective": "Inspector",
     "roleSuspect": "You",
-    "endingSoon": "Time left:"
+    "endingSoon": "Time left:",
+    "snap": "Snap",
+    "retake": "Retake",
+    "useThis": "Use this",
+    "uploading": "Uploading…",
+    "uploaded": "Uploaded",
+    "cameraError": "Could not start the camera. Check permissions.",
+    "uploadError": "Upload failed. Try again.",
+    "dropZoneHint": "Drop a photo here",
+    "orPickFile": "or pick a file",
+    "fileTypeError": "Only image files are allowed."
   },
   "avatar": {
     "liveBadge": "Live · Inspector Carrot",

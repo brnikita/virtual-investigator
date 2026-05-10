@@ -48,12 +48,25 @@ export default async function InterviewPage({
     offline: a.offline,
     noLipSync: a.noLipSync,
   };
+  const evidenceLabels = {
+    takePhoto: t.takePhoto,
+    snap: t.snap,
+    retake: t.retake,
+    useThis: t.useThis,
+    uploading: t.uploading,
+    uploaded: t.uploaded,
+    cameraError: t.cameraError,
+    uploadError: t.uploadError,
+    dropZoneHint: t.dropZoneHint,
+    orPickFile: t.orPickFile,
+    fileTypeError: t.fileTypeError,
+  };
 
   return (
     <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 py-8 lg:grid-cols-[2fr_1fr]">
       <section className="space-y-4">
         <AvatarStage caseId={caseId} labels={avatarLabels} />
-        <EvidenceUploader caseId={caseId} />
+        <EvidenceUploader caseId={caseId} labels={evidenceLabels} />
       </section>
       <aside className="space-y-4">
         <RealtimeClient caseId={caseId} labels={labels} />
