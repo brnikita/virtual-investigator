@@ -138,9 +138,14 @@ appears live in `AvatarStage`.
     placeholder values for `SIMLI_API_KEY`/`SIMLI_FACE_ID` so the rest of
     Phase 3 ships dry; live streaming will succeed once the human swaps in
     real credentials.
-- [ ] **3.2 AvatarBus.** Create `src/lib/avatar-bus.ts` — a tiny EventTarget
+- [x] **3.2 AvatarBus.** Create `src/lib/avatar-bus.ts` — a tiny EventTarget
   that lets `RealtimeClient` push audio chunks (PCM16 24 kHz Int16Array) and
   `AvatarStage` subscribe.
+  - Diverged: bus carries the whole `MediaStreamTrack` (one `remote_track`
+    event) plus an `end` signal — no per-frame events. Consumer attaches its
+    own `MediaStreamTrackProcessor` so the realtime hot path stays free of
+    audio decoding. Stub from Phase 2.1 already matched the final shape; only
+    the doc comment changed in this step.
 - [ ] **3.3 Simli session bootstrap.** `AvatarStage` fetches
   `/api/simli/session` and calls `startAvatar`.
 - [ ] **3.4 Wire the audio pipeline.** Replace the throw in

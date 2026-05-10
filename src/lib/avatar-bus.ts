@@ -3,9 +3,11 @@
 // MediaStreamTrack onto the bus; AvatarStage subscribes and forwards frames
 // into Simli after downsampling 24 kHz -> 16 kHz.
 //
-// Phase 2 ships the producer side. Phase 3.2 will replace this stub with
-// per-frame PCM events. Keeping the surface stable so the Phase 3 wiring is
-// purely additive.
+// Phase 3 reconciliation: we send the whole `MediaStreamTrack` over the bus
+// (not per-frame Int16 chunks) and let the consumer attach its own
+// `MediaStreamTrackProcessor`. This keeps the producer cheap (no audio
+// decoding on the realtime hot path) and lets the consumer pick the
+// resampling strategy that fits the runtime — see `AvatarStage`.
 
 export type AvatarBusEventMap = {
   /** A new remote audio MediaStreamTrack from the Realtime peer. */
