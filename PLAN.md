@@ -106,9 +106,14 @@ real time; tool calls land in the database.
     dispatch + `/api/evidence` route. The route upserts on `(case_id, key)`
     so re-asks of the same fact stay one row, and writes a `tool` breadcrumb
     in `messages` keyed to the active interview.
-- [ ] **2.4 Hard cap on interview length.** `RealtimeClient` enforces
+- [x] **2.4 Hard cap on interview length.** `RealtimeClient` enforces
   `MAX_INTERVIEW_SECONDS` with a `setTimeout`. UI shows a countdown in the
   last 60 seconds.
+  - Diverged: `MAX_INTERVIEW_SECONDS` is read from the
+    `/api/realtime/session` response (already wired in 2.1) so the client
+    doesn't need a second config endpoint. Defense-in-depth check added to
+    the finalize route: rejects with 409 if the active interview's
+    `started_at` is older than `MAX + 30s`.
 - [ ] **2.5 Interview metrics.** Persist `started_at`, `ended_at`,
   `duration_seconds`, and a `cost_estimate_usd` computed from the audio
   duration on `interviews`.

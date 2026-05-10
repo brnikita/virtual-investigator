@@ -81,15 +81,24 @@ export function RealtimeClient({
 }) {
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Visible only inside the last 60 seconds; null otherwise.
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   // Refs because these survive re-renders but never need to trigger one.
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioElRef = useRef<HTMLAudioElement | null>(null);
+  const hardStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Tear-down is shared between the explicit Stop button and unmount.
+  // Tear-down is shared between the explicit Stop button, the hard cap
+  // timer, and unmount.
   const teardown = useCallback(() => {
+    if (hardStopTimerRef.current) clearTimeout(hardStopTimerRef.current);
+    if (countdownTickerRef.current) clearInterval(countdownTickerRef.current);
+    hardStopTimerRef.current = null;
+    countdownTickerRef.current = null;
     try { dcRef.current?.close(); } catch { /* noop */ }
     try { pcRef.current?.getSenders().forEach((s) => s.track?.stop()); } catch { /* noop */ }
     try { pcRef.current?.close(); } catch { /* noop */ }
@@ -103,6 +112,7 @@ export function RealtimeClient({
     pcRef.current = null;
     dcRef.current = null;
     micStreamRef.current = null;
+    setCountdown(null);
   }, []);
 
   useEffect(() => {
@@ -270,6 +280,18 @@ export function RealtimeClient({
       await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
 
       setActive(true);
+
+      // Cost guardrail: hard-stop at MAX_INTERVIEW_SECONDS, with a visible
+      // countdown in the last 60s so kids aren't surprised by the cut.
+      const maxSec = session.maxInterviewSeconds;
+      const startedAt = Date.now();
+      hardStopTimerRef.current = setTimeout(() => {
+        void stop();
+      }, maxSec * 1000);
+      countdownTickerRef.current = setInterval(() => {
+        const remaining = Math.max(0, maxSec - Math.floor((Date.now() - startedAt) / 1000));
+        setCountdown(remaining <= 60 ? remaining : null);
+      }, 1000);
     } catch (err) {
       teardown();
       setError(err instanceof Error ? err.message : 'unknown error');
@@ -299,6 +321,11 @@ export function RealtimeClient({
           </button>
         )}
       </div>
+      {countdown !== null ? (
+        <p className="mt-2 text-sm font-semibold text-stamp">
+          {labels.endingSoon} {countdown}s
+        </p>
+      ) : null}
       {error ? (
         <p className="mt-2 text-sm text-red-700">
           {labels.errorPrefix}: {error}
