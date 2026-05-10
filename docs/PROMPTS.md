@@ -44,6 +44,23 @@ The composer must produce a `DossierPayload` with playful scales (Милота,
 for EN). The detective's evidence rows are passed verbatim plus optional
 transcript highlights.
 
+## Avatar idle behaviour
+
+Source: `src/lib/simli/client.ts` → `startAvatar`.
+
+`SimliClient.Initialize` is called with `handleSilence: true`, which makes
+the SDK emit its own filler audio frames (a 6 KB zero-PCM packet, see
+`SimliClient.ts` line ~417) whenever no real audio has flowed for ~6 s.
+That's enough to keep the cartoon face looking alive between speech turns
+without any work on our side. We do not need a manual silence-timeout +
+`flush()` nudge in `AvatarStage`.
+
+`maxIdleTime` (set to 120 s) is the hard cut: if the avatar receives no
+audio for that long the SDK tears the WebRTC peer down. The interview
+already hard-caps at `MAX_INTERVIEW_SECONDS` (default 300), so 120 s of
+idle inside an interview is "the player wandered off" and ending the
+session is the right call.
+
 ## Portrait generator
 
 Source: `src/lib/openai/images.ts` → `buildPortraitPrompt`.

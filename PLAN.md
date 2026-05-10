@@ -166,8 +166,13 @@ appears live in `AvatarStage`.
     feed is `sendAudioData(Uint8Array)` over the resampled Int16 buffer;
     `flush()` maps to `ClearBuffer()`; `stop()` to `close()`. Latency
     target unverified (no live Simli account in this env — see 3.1).
-- [ ] **3.5 Idle state.** When no audio is flowing for > 1 s, the avatar idles
+- [x] **3.5 Idle state.** When no audio is flowing for > 1 s, the avatar idles
   (Simli does this itself — verify).
+  - Verified by reading the SDK source: with `handleSilence: true` the SDK
+    emits its own zero-PCM filler frames whenever real audio stops flowing,
+    so the avatar stays animated between turns without any nudge from our
+    side. Documented in `docs/PROMPTS.md`. No manual silence-timeout in
+    AvatarStage.
 
 ---
 
