@@ -85,10 +85,15 @@ real time; tool calls land in the database.
     and arm the cost-cap timer (used in 2.4) without a second round-trip.
     AvatarBus stub created early as `src/lib/avatar-bus.ts` so the Phase 3
     wiring is purely additive — Phase 2 only emits a `remote_track` event.
-- [ ] **2.2 Transcript bus.** Route `response.audio_transcript.delta` (assistant)
+- [x] **2.2 Transcript bus.** Route `response.audio_transcript.delta` (assistant)
   and `conversation.item.input_audio_transcription.completed` (user) into a
   `TranscriptBus`. Render in `TranscriptPanel`.
   - Acceptance: live captions in both directions.
+  - Diverged: also routes `response.audio_transcript.done` so the panel can
+    swap a delta-built bubble for the authoritative final transcript.
+    Interview page now loads the dictionary server-side and passes label
+    props into both client components — keeps i18n strings out of client
+    bundles and out of the realtime hot path.
 - [ ] **2.3 Tool dispatch.** Handle `response.function_call_arguments.done` for
   `record_evidence` and `finish_interview`. For `record_evidence`, POST to a
   new route `POST /api/evidence` (create stub) that inserts into `evidence`.

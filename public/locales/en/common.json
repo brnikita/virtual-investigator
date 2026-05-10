@@ -49,7 +49,15 @@
     "uploadPhoto": "Upload photo",
     "takePhoto": "Take photo",
     "muteMic": "Mute mic",
-    "unmuteMic": "Unmute mic"
+    "unmuteMic": "Unmute mic",
+    "panelTitle": "Interview",
+    "panelHint": "The mic is only on while the interview is running. You can stop it any time.",
+    "errorPrefix": "Error",
+    "transcriptTitle": "Transcript",
+    "transcriptEmpty": "Hit \"Start\" to begin the interview.",
+    "roleDetective": "Inspector",
+    "roleSuspect": "You",
+    "endingSoon": "Time left:"
   },
   "dossier": {
     "title": "Secret dossier",

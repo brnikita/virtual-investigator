@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { avatarBus } from '@/lib/avatar-bus';
+import { transcriptBus } from '@/lib/transcript-bus';
 
 // Owns the WebRTC peer to OpenAI Realtime. Two big responsibilities:
 //   1. Negotiate the peer connection using the ephemeral key from
@@ -22,7 +23,66 @@ interface SessionResponse {
   maxInterviewSeconds: number;
 }
 
-export function RealtimeClient({ caseId }: { caseId: string }) {
+// We only handle a handful of event types; the rest of the union is
+// represented as `Record<string, unknown>` so the JSON.parse cast is safe.
+type RealtimeEvent =
+  | { type: 'response.audio_transcript.delta'; delta: string; item_id?: string }
+  | { type: 'response.audio_transcript.done'; transcript: string; item_id?: string }
+  | {
+      type: 'conversation.item.input_audio_transcription.completed';
+      transcript: string;
+      item_id?: string;
+    }
+  | { type: string; [key: string]: unknown };
+
+function routeRealtimeEvent(evt: RealtimeEvent) {
+  switch (evt.type) {
+    case 'response.audio_transcript.delta':
+      transcriptBus.dispatchTurn({
+        role: 'detective',
+        text: (evt as { delta: string }).delta,
+        final: false,
+        itemId: (evt as { item_id?: string }).item_id,
+      });
+      break;
+    case 'response.audio_transcript.done':
+      transcriptBus.dispatchTurn({
+        role: 'detective',
+        text: (evt as { transcript: string }).transcript,
+        final: true,
+        itemId: (evt as { item_id?: string }).item_id,
+      });
+      break;
+    case 'conversation.item.input_audio_transcription.completed':
+      transcriptBus.dispatchTurn({
+        role: 'suspect',
+        text: (evt as { transcript: string }).transcript,
+        final: true,
+        itemId: (evt as { item_id?: string }).item_id,
+      });
+      break;
+    default:
+      // Tool calls, response.created, errors, etc. — handled in 2.3 / 2.4.
+      break;
+  }
+}
+
+export interface RealtimeClientLabels {
+  panelTitle: string;
+  panelHint: string;
+  start: string;
+  stop: string;
+  errorPrefix: string;
+  endingSoon: string;
+}
+
+export function RealtimeClient({
+  caseId,
+  labels,
+}: {
+  caseId: string;
+  labels: RealtimeClientLabels;
+}) {
   const [active, setActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,10 +157,12 @@ export function RealtimeClient({ caseId }: { caseId: string }) {
       const dc = pc.createDataChannel('oai-events');
       dcRef.current = dc;
       dc.addEventListener('message', (e) => {
-        // Step 2.2 / 2.3 will route these. For now, surface in dev console
-        // so the smoke test can confirm bidirectional traffic.
-        if (typeof e.data === 'string') {
-          console.debug('[realtime] event', e.data.slice(0, 200));
+        if (typeof e.data !== 'string') return;
+        try {
+          const evt = JSON.parse(e.data) as RealtimeEvent;
+          routeRealtimeEvent(evt);
+        } catch {
+          // Realtime occasionally pads with binary control frames; ignore.
         }
       });
 
@@ -142,22 +204,24 @@ export function RealtimeClient({ caseId }: { caseId: string }) {
 
   return (
     <div className="rounded-xl border border-ink/10 bg-white/60 p-4 shadow-sm">
-      <h3 className="font-semibold">Допрос</h3>
-      <p className="mt-1 text-sm text-ink/70">
-        Микрофон работает только во время допроса. Можно прервать в любой момент.
-      </p>
+      <h3 className="font-semibold">{labels.panelTitle}</h3>
+      <p className="mt-1 text-sm text-ink/70">{labels.panelHint}</p>
       <div className="mt-3 flex gap-2">
         {!active ? (
           <button onClick={start} className="rounded-md bg-stamp px-4 py-2 text-white">
-            Начать
+            {labels.start}
           </button>
         ) : (
           <button onClick={stop} className="rounded-md border border-ink/30 px-4 py-2">
-            Завершить
+            {labels.stop}
           </button>
         )}
       </div>
-      {error ? <p className="mt-2 text-sm text-red-700">Ошибка: {error}</p> : null}
+      {error ? (
+        <p className="mt-2 text-sm text-red-700">
+          {labels.errorPrefix}: {error}
+        </p>
+      ) : null}
     </div>
   );
 }

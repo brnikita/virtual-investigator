@@ -49,7 +49,15 @@
     "uploadPhoto": "Загрузить фото",
     "takePhoto": "Сфоткать",
     "muteMic": "Выключить микрофон",
-    "unmuteMic": "Включить микрофон"
+    "unmuteMic": "Включить микрофон",
+    "panelTitle": "Допрос",
+    "panelHint": "Микрофон работает только во время допроса. Можно прервать в любой момент.",
+    "errorPrefix": "Ошибка",
+    "transcriptTitle": "Стенограмма",
+    "transcriptEmpty": "Нажми «Начать», чтобы запустить допрос.",
+    "roleDetective": "Инспектор",
+    "roleSuspect": "Ты",
+    "endingSoon": "До конца допроса:"
   },
   "dossier": {
     "title": "Секретное досье",
