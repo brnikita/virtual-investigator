@@ -10,8 +10,6 @@ dist/
 build/
 
 # Environment
-.env
-.env.local
 .env.*.local
 !.env.example
 
@@ -59,3 +57,4 @@ memory/
 
 # Claude Code local settings
 .claude/
+config.bat
