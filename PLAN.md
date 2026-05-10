@@ -192,8 +192,15 @@ privately and used as a hint for the portrait generator.
     server-side from the case-language dictionary (new keys: `snap`,
     `retake`, `useThis`, `uploading`, `uploaded`, `cameraError`,
     `uploadError`).
-- [ ] **4.2 File upload.** Drag-and-drop + file picker in `EvidenceUploader`,
+- [x] **4.2 File upload.** Drag-and-drop + file picker in `EvidenceUploader`,
   hitting the same endpoint.
+  - Diverged: shared client-side `uploadSuspectPhoto` helper kept inside the
+    component file (browser-only, single consumer). Successful uploads also
+    fire a `evidence:uploaded` `CustomEvent` on `window` so the Phase 5
+    dossier compose path can subscribe without a prop chain. Drop zone
+    accepts the first file only and rejects non-image MIME types with the
+    `fileTypeError` string. Object URLs are revoked when the preview is
+    replaced.
 - [ ] **4.3 Signed-URL helper.** Add a server util that returns a 60-s signed
   URL for an attachment, used by the dossier editor and PDF renderer.
 
